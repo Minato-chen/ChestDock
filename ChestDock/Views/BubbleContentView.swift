@@ -5,64 +5,59 @@ struct BubbleContentView: View {
     @ObservedObject var store: ChestStore
     @ObservedObject var layoutState: BubbleLayoutState
     @State private var isDroppingFiles: Bool = false
-    @State private var isHoveringCollapsedBall: Bool = false
+    @State private var isHoveringCollapsed: Bool = false
 
     private let tailHeight: CGFloat = 13
 
     var body: some View {
         if layoutState.isCollapsed {
-            collapsedFloatingBallView
+            collapsedFloatingView
         } else {
             expandedBubbleView
         }
     }
 
-    // MARK: - Collapsed Floating Ball (48x48)
+    // MARK: - Native macOS Styled Collapsed Floating Icon
 
-    private var collapsedFloatingBallView: some View {
-        ZStack {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    Circle()
-                        .fill(Color.primary.opacity(isHoveringCollapsedBall ? 0.12 : 0.05))
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.65),
-                                    Color.white.opacity(0.25)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.2
-                        )
-                )
-                .shadow(
-                    color: Color.black.opacity(isHoveringCollapsedBall ? 0.35 : 0.22),
-                    radius: isHoveringCollapsedBall ? 10 : 6,
-                    x: 0,
-                    y: 3
-                )
-
-            // Minimalist icon representing ChestDock app grid
-            Image(systemName: "square.grid.2x2.fill")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(Color.accentColor)
-                .scaleEffect(isHoveringCollapsedBall ? 1.08 : 1.0)
-        }
-        .frame(
-            width: BubblePanelController.collapsedSize.width,
-            height: BubblePanelController.collapsedSize.height
-        )
-        .contentShape(Circle())
-        .onHover { isHoveringCollapsedBall = $0 }
-        .onTapGesture {
+    private var collapsedFloatingView: some View {
+        Button {
             BubblePanelController.shared.setCollapsed(false)
+        } label: {
+            ZStack {
+                // Frosted background with smooth squircle
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.primary.opacity(isHoveringCollapsed ? 0.12 : 0.05))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                Color.white.opacity(isHoveringCollapsed ? 0.45 : 0.25),
+                                lineWidth: 1.0
+                            )
+                    )
+                    .shadow(
+                        color: Color.black.opacity(isHoveringCollapsed ? 0.28 : 0.18),
+                        radius: isHoveringCollapsed ? 8 : 5,
+                        x: 0,
+                        y: 2
+                    )
+
+                // Native macOS menu-bar style icon
+                Image(systemName: "square.grid.2x2.fill")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color.primary.opacity(isHoveringCollapsed ? 1.0 : 0.85))
+            }
+            .frame(
+                width: BubblePanelController.collapsedSize.width,
+                height: BubblePanelController.collapsedSize.height
+            )
         }
+        .buttonStyle(.plain)
+        .onHover { isHoveringCollapsed = $0 }
+        .help("点击展开面板")
         .contextMenu {
             Button("展开面板") {
                 BubblePanelController.shared.setCollapsed(false)
@@ -107,7 +102,7 @@ struct BubbleContentView: View {
                         .onTapGesture(count: 2) {
                             BubblePanelController.shared.toggleCollapse()
                         }
-                        .help("双击收起为悬浮球 (⌘M)")
+                        .help("双击收起面板 (⌘M)")
                         .transition(.opacity.combined(with: .scale))
                 }
 
@@ -146,7 +141,7 @@ struct BubbleContentView: View {
                 BubblePanelController.shared.togglePin()
             }
             if layoutState.isPinned {
-                Button("收起为悬浮球 (⌘M)") {
+                Button("收起面板 (⌘M)") {
                     BubblePanelController.shared.setCollapsed(true)
                 }
             }

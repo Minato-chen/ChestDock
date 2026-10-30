@@ -444,9 +444,10 @@ private struct ExtensionsAndPermissionsTab: View {
 
     var body: some View {
         Form {
-            Section("内容类型扩展 (阶段二预留特性)") {
+            Section("内容类型扩展（暂未实现）") {
                 Toggle("允许添加常用文件夹与普通文件", isOn: $store.config.allowFoldersAndFiles)
-                Text("开启后，除了 .app 应用程序外，还可以将常用文件夹或文件直接拖入气泡网格中作为快捷方式。")
+                    .disabled(true)
+                Text("此项仅为底层架构预留占位，当前版本仅支持 .app 应用程序。未来版本将支持直接拖入常用文件夹与文档作为快捷方式。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

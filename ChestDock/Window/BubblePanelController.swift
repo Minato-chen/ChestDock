@@ -40,8 +40,8 @@ final class BubblePanelController {
     private var isProgrammaticFrameChange = false
     private var visibilityGeneration: Int = 0
 
-    // Constant size for the floating bubble pill when collapsed
-    static let collapsedSize = CGSize(width: 52, height: 52)
+    // Constant size for the floating bubble pill when collapsed (macOS native menu bar button size)
+    static let collapsedSize = CGSize(width: 38, height: 38)
 
     private init() {
         let store = ChestStore.shared
@@ -71,13 +71,10 @@ final class BubblePanelController {
     }
 
     func setPinned(_ pinned: Bool) {
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
-            layoutState.isPinned = pinned
-            if !pinned {
-                layoutState.isCollapsed = false
-            }
+        layoutState.isPinned = pinned
+        if !pinned {
+            layoutState.isCollapsed = false
         }
-        panel?.isMovableByWindowBackground = pinned
 
         if !pinned && layoutState.isDetachedFromDock {
             snapBackToAnchor()
@@ -94,9 +91,7 @@ final class BubblePanelController {
         guard layoutState.isPinned else { return }
         guard let panel = panel, panel.isVisible else { return }
 
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-            layoutState.isCollapsed = collapsed
-        }
+        layoutState.isCollapsed = collapsed
 
         let targetSize: CGSize
         if collapsed {
@@ -106,27 +101,18 @@ final class BubblePanelController {
             targetSize = computePanelSize(for: ChestStore.shared.config, edge: anchorInfo.edge)
         }
 
-        // Keep top-right corner or center stationary when collapsing
+        // Keep top-right corner stationary
         let currentFrame = panel.frame
         let newX = currentFrame.maxX - targetSize.width
         let newY = currentFrame.maxY - targetSize.height
         let targetFrame = NSRect(x: newX, y: newY, width: targetSize.width, height: targetSize.height)
 
         isProgrammaticFrameChange = true
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            panel.animator().setFrame(targetFrame, display: true)
-        }, completionHandler: { [weak self] in
-            Task { @MainActor in
-                self?.isProgrammaticFrameChange = false
-            }
-        })
+        panel.setFrame(targetFrame, display: true, animate: true)
+        isProgrammaticFrameChange = false
     }
 
     /// Invoked from the right-click menu ("钉住气泡面板"):
-    /// - If the bubble is closed, opens it immediately in the **pinned** state!
-    /// - If the bubble is already open, toggles its pinned state.
     func openPinnedOrTogglePin(source: BubbleTriggerSource, statusButton: NSStatusBarButton? = nil) {
         if !isVisible {
             switch source {
@@ -165,21 +151,12 @@ final class BubblePanelController {
         )
         anchoredOrigin = frame.origin
 
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-            layoutState.tailOffsetFromCenter = tailOffset
-            layoutState.isDetachedFromDock = false
-        }
+        layoutState.tailOffsetFromCenter = tailOffset
+        layoutState.isDetachedFromDock = false
 
         isProgrammaticFrameChange = true
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            panel.animator().setFrame(frame, display: true)
-        }, completionHandler: { [weak self] in
-            Task { @MainActor in
-                self?.isProgrammaticFrameChange = false
-            }
-        })
+        panel.setFrame(frame, display: true, animate: true)
+        isProgrammaticFrameChange = false
     }
 
     // MARK: - Show / Hide / Toggle (Dock & Menu Bar)
@@ -191,7 +168,6 @@ final class BubblePanelController {
         }
 
         if isVisible {
-            // When currently at Menu Bar (even if pinned), clicking Dock IMMEDIATELY switches to Dock!
             if layoutState.triggerSource == .menuBar {
                 showFromDock()
             } else {
@@ -212,7 +188,6 @@ final class BubblePanelController {
         }
 
         if isVisible {
-            // When currently at Dock (even if pinned), clicking Menu Bar IMMEDIATELY switches to Menu Bar!
             if layoutState.triggerSource == .dock {
                 showFromMenuBar(button: button)
             } else {
@@ -274,7 +249,6 @@ final class BubblePanelController {
         }
 
         guard let panel = panel else { return }
-        panel.isMovableByWindowBackground = layoutState.isPinned
 
         isProgrammaticFrameChange = true
         if !layoutState.isDetachedFromDock {
@@ -423,9 +397,7 @@ final class BubblePanelController {
         let shouldDetach = distance > 14
 
         if layoutState.isDetachedFromDock != shouldDetach {
-            withAnimation(.spring(response: 0.26, dampingFraction: 0.8)) {
-                layoutState.isDetachedFromDock = shouldDetach
-            }
+            layoutState.isDetachedFromDock = shouldDetach
         }
     }
 
@@ -547,13 +519,11 @@ final class BubblePanelController {
                 return cmd == reqCmd && opt == reqOpt && ctrl == reqCtrl && shift == reqShift
             }
 
-            // Custom or default Pin shortcut
             if matchesShortcut(store.config.togglePinShortcut) {
                 self.togglePin()
                 return nil
             }
 
-            // Custom or default Collapse shortcut
             if self.layoutState.isPinned && matchesShortcut(store.config.toggleCollapseShortcut) {
                 self.toggleCollapse()
                 return nil

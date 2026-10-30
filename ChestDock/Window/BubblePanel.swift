@@ -25,7 +25,7 @@ final class BubblePanel: NSPanel {
         self.isOpaque = false
         self.backgroundColor = .clear
         self.hasShadow = true
-        self.isMovableByWindowBackground = true
+        self.isMovableByWindowBackground = false // Controlled via manual drag tracking
         self.hidesOnDeactivate = false
         self.acceptsMouseMovedEvents = true
     }
@@ -91,7 +91,6 @@ final class BubblePanel: NSPanel {
         let w = frame.width
         let h = frame.height
 
-        // Top bar / grabber area (top 60pt),Bottom page dots area (bottom 40pt), or Left/Right margins (22pt)
         let isTopBar = pt.y >= h - 60
         let isBottomBar = pt.y <= 40
         let isSideMargin = pt.x <= 22 || pt.x >= w - 22
