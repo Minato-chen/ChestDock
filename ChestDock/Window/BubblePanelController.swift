@@ -30,6 +30,7 @@ final class BubblePanelController {
     let layoutState = BubbleLayoutState()
     private var panel: BubblePanel?
     private var globalClickMonitor: Any?
+    private var localClickMonitor: Any?
     private var localKeyMonitor: Any?
     private var windowMoveObserver: NSObjectProtocol?
     private var lastOutsideDismissTime: TimeInterval = 0
@@ -500,6 +501,28 @@ final class BubblePanelController {
             }
         }
 
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] event in
+            guard let self = self,
+                  let panel = self.panel,
+                  panel.isVisible,
+                  !self.layoutState.isPinned else { return event }
+
+            let mouseLoc = NSEvent.mouseLocation
+            // If click occurs in an App window (like Settings) outside the bubble panel, dismiss bubble
+            if event.window != panel && !panel.frame.contains(mouseLoc) {
+                // Ignore click directly on menu bar button
+                if let button = self.lastStatusButton,
+                   let btnWindow = button.window,
+                   btnWindow.frame.insetBy(dx: -4, dy: -4).contains(mouseLoc) {
+                    return event
+                }
+                self.hide(fromOutsideClick: true)
+            }
+            return event
+        }
+
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self, self.isVisible else { return event }
 
@@ -511,6 +534,7 @@ final class BubblePanelController {
             let shift = event.modifierFlags.contains(.shift)
 
             func matchesShortcut(_ sc: KeyShortcut) -> Bool {
+                guard sc.isEnabled else { return false }
                 guard sc.key.lowercased() == key else { return false }
                 let reqCmd = sc.modifiers.contains("command")
                 let reqOpt = sc.modifiers.contains("option")
@@ -573,6 +597,10 @@ final class BubblePanelController {
         if let monitor = globalClickMonitor {
             NSEvent.removeMonitor(monitor)
             globalClickMonitor = nil
+        }
+        if let monitor = localClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            localClickMonitor = nil
         }
         if let monitor = localKeyMonitor {
             NSEvent.removeMonitor(monitor)

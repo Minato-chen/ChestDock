@@ -80,11 +80,16 @@ struct AppIconItemView: View {
                 }
             }
 
+            Divider()
+
+            // Move to other categories submenu
             if store.categories.count > 1, let currentCatId = store.selectedCategory?.id {
-                Menu("移动到其他分类") {
+                Menu("移动到分类") {
                     ForEach(store.categories.filter { $0.id != currentCatId }) { targetCat in
                         Button(targetCat.name) {
-                            store.moveItem(item.id, from: currentCatId, to: targetCat.id)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                                store.moveItem(item.id, from: currentCatId, to: targetCat.id)
+                            }
                         }
                     }
                 }
@@ -120,7 +125,6 @@ struct AppIconItemView: View {
 
         group.notify(queue: .main) {
             guard !collectedURLs.isEmpty else { return }
-            // If all dropped items are .app bundles, add them to the category instead
             let allApps = collectedURLs.allSatisfy { $0.path.lowercased().hasSuffix(".app") }
             if allApps {
                 store.addItems(from: collectedURLs)

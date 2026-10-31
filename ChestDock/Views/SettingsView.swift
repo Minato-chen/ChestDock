@@ -31,13 +31,13 @@ struct SettingsView: View {
                     Label("扩展与权限", systemImage: "lock.shield")
                 }
 
-            AboutSettingsTab()
+            AboutSettingsTab(store: store)
                 .tabItem {
                     Label("关于", systemImage: "info.circle")
                 }
         }
         .padding(16)
-        .frame(minWidth: 680, minHeight: 480)
+        .frame(minWidth: 700, minHeight: 500)
     }
 }
 
@@ -64,15 +64,7 @@ private struct GeneralSettingsTab: View {
             Section("快捷入口") {
                 Toggle("在顶部菜单栏显示 ChestDock 快捷图标", isOn: $store.config.showMenuBarIcon)
 
-                Text("开启后可在屏幕右上角菜单栏单机直接呼出应用网格，右键呼出控制菜单。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("更新维护") {
-                Toggle("自动检查新版本", isOn: $store.config.autoCheckUpdates)
-
-                Text("ChestDock 启动后会在后台静默检查 GitHub Releases 是否有新版本。")
+                Text("开启后可在屏幕右上角菜单栏单击直接呼出应用网格，右键呼出控制菜单。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -84,7 +76,7 @@ private struct GeneralSettingsTab: View {
     }
 }
 
-// MARK: - Tab 2: Categories & Apps Management
+// MARK: - Tab 2: Categories & Apps Management (With Drag-to-move & Reorder)
 
 private struct CategoriesManagementTab: View {
     @ObservedObject var store: ChestStore
@@ -120,6 +112,10 @@ private struct CategoriesManagementTab: View {
                                 .background(Capsule().fill(Color.primary.opacity(0.08)))
                         }
                         .tag(category.id)
+                        // Drop an App item onto this category in Settings
+                        .onDrop(of: [.text, .fileURL], isTargeted: nil) { providers in
+                            handleDropOnCategoryRow(providers: providers, targetCategory: category)
+                        }
                     }
                     .onMove { indices, newOffset in
                         store.moveCategory(from: indices, to: newOffset)
@@ -159,16 +155,19 @@ private struct CategoriesManagementTab: View {
                     .help("删除选中分类")
                 }
             }
-            .frame(minWidth: 200, idealWidth: 220, maxWidth: 260)
+            .frame(minWidth: 200, idealWidth: 230, maxWidth: 270)
             .padding(.trailing, 8)
 
-            // Right Column: Items in Selected Category
+            // Right Column: Items in Selected Category (Supports Reordering & Moving)
             VStack(alignment: .leading, spacing: 8) {
                 if let category = activeCategory {
                     HStack {
-                        Text("「\(category.name)」中的项目")
+                        Text("「\(category.name)」中的项目 (\(category.items.count))")
                             .font(.headline)
                         Spacer()
+                        Text("可拖拽调整顺序或拖至左侧分类")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         Button {
                             store.presentAddItemsPanel(for: category.id)
                         } label: {
@@ -182,6 +181,11 @@ private struct CategoriesManagementTab: View {
                     List {
                         ForEach(category.items) { item in
                             HStack(spacing: 10) {
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.trailing, 2)
+
                                 Image(nsImage: store.icon(for: item))
                                     .resizable()
                                     .frame(width: 28, height: 28)
@@ -198,15 +202,23 @@ private struct CategoriesManagementTab: View {
 
                                 Spacer()
 
-                                Text(item.type.displayName)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(Color.primary.opacity(0.06))
-                                    )
+                                // Move to category menu button
+                                if store.categories.count > 1 {
+                                    Menu {
+                                        ForEach(store.categories.filter { $0.id != category.id }) { targetCat in
+                                            Button(targetCat.name) {
+                                                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                                                    store.moveItem(item.id, from: category.id, to: targetCat.id)
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        Label("移动到", systemImage: "arrow.right.circle")
+                                            .font(.caption)
+                                    }
+                                    .menuStyle(.borderlessButton)
+                                    .fixedSize()
+                                }
 
                                 Button(role: .destructive) {
                                     store.removeItem(item.id, from: category.id)
@@ -218,6 +230,24 @@ private struct CategoriesManagementTab: View {
                                 .help("移除")
                             }
                             .padding(.vertical, 2)
+                            .contextMenu {
+                                if store.categories.count > 1 {
+                                    Menu("移动到分类") {
+                                        ForEach(store.categories.filter { $0.id != category.id }) { targetCat in
+                                            Button(targetCat.name) {
+                                                store.moveItem(item.id, from: category.id, to: targetCat.id)
+                                            }
+                                        }
+                                    }
+                                }
+                                Divider()
+                                Button("从分类中移除", role: .destructive) {
+                                    store.removeItem(item.id, from: category.id)
+                                }
+                            }
+                        }
+                        .onMove { sourceIndices, destination in
+                            store.moveItems(fromOffsets: sourceIndices, toOffset: destination, in: category.id)
                         }
                     }
                     .listStyle(.bordered(alternatesRowBackgrounds: true))
@@ -238,7 +268,7 @@ private struct CategoriesManagementTab: View {
                     }
                 }
             }
-            .frame(minWidth: 360)
+            .frame(minWidth: 380)
             .padding(.leading, 8)
         }
         .onAppear {
@@ -253,6 +283,32 @@ private struct CategoriesManagementTab: View {
         let created = store.addCategory(name: name.isEmpty ? "新分类" : name)
         newCategoryName = ""
         selectedCategoryId = created.id
+    }
+
+    private func handleDropOnCategoryRow(providers: [NSItemProvider], targetCategory: AppCategory) -> Bool {
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
+                provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { data, _ in
+                    let uuidString: String?
+                    if let str = data as? String {
+                        uuidString = str
+                    } else if let d = data as? Data, let s = String(data: d, encoding: .utf8) {
+                        uuidString = s
+                    } else {
+                        uuidString = nil
+                    }
+                    if let uuidString = uuidString, let itemId = UUID(uuidString: uuidString) {
+                        Task { @MainActor in
+                            if let cur = activeCategory?.id, cur != targetCategory.id {
+                                store.moveItem(itemId, from: cur, to: targetCategory.id)
+                            }
+                        }
+                    }
+                }
+                return true
+            }
+        }
+        return false
     }
 
     private func handleDrop(providers: [NSItemProvider], into categoryId: UUID) -> Bool {
@@ -297,14 +353,14 @@ private struct CategoryNameRow: View {
     }
 }
 
-// MARK: - Tab 3: Grid & Appearance
+// MARK: - Tab 3: Grid & Appearance (Equal 2x2 to 6x8 range)
 
 private struct LayoutAppearanceTab: View {
     @ObservedObject var store: ChestStore
 
     var body: some View {
         Form {
-            Section("气泡网格行列自定义") {
+            Section("气泡网格行列自定义 (从 2×2 起相同规格)") {
                 HStack {
                     Text("网格行数 (Rows): \(store.config.rows) 行")
                         .frame(width: 170, alignment: .leading)
@@ -326,7 +382,7 @@ private struct LayoutAppearanceTab: View {
                             get: { Double(store.config.columns) },
                             set: { store.config.columns = Int($0.rounded()) }
                         ),
-                        in: 3...8,
+                        in: 2...8,
                         step: 1
                     )
                 }
@@ -341,7 +397,7 @@ private struct LayoutAppearanceTab: View {
                     )
                 }
 
-                Text("当前单页容量：\(store.config.rows) × \(store.config.columns) = \(store.config.pageSize) 个图标，超出自动横向翻页。")
+                Text("当前单页容量：\(store.config.rows) × \(store.config.columns) = \(store.config.pageSize) 个图标，超出自动横向翻页。支持最小 2×2 精简规格。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -362,53 +418,69 @@ private struct LayoutAppearanceTab: View {
     }
 }
 
-// MARK: - Tab 4: Shortcuts Settings
+// MARK: - Tab 4: Shortcuts Settings (With separate enable/disable switches)
 
 private struct ShortcutsSettingsTab: View {
     @ObservedObject var store: ChestStore
 
     var body: some View {
         Form {
-            Section("悬浮面板控制快捷键") {
-                HStack {
-                    Text("钉住 / 取消钉住面板:")
-                        .frame(width: 180, alignment: .leading)
-                    Spacer()
-                    Picker("", selection: $store.config.togglePinShortcut.key) {
-                        Text("P 键").tag("p")
-                        Text("D 键").tag("d")
-                        Text("K 键").tag("k")
+            Section("悬浮面板控制快捷键 (分别启用/禁用)") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("启用「钉住 / 取消钉住」快捷键", isOn: $store.config.togglePinShortcut.isEnabled)
+                        .font(.system(size: 13, weight: .medium))
+
+                    if store.config.togglePinShortcut.isEnabled {
+                        HStack {
+                            Text("快捷触发按键:")
+                                .frame(width: 120, alignment: .leading)
+                            Picker("", selection: $store.config.togglePinShortcut.key) {
+                                Text("P 键").tag("p")
+                                Text("D 键").tag("d")
+                                Text("K 键").tag("k")
+                            }
+                            .frame(width: 110)
+                            Text("组合修饰键：⌘ Command")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.leading, 20)
                     }
-                    .frame(width: 110)
-                    Text("修饰键：⌘ Command")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
 
-                HStack {
-                    Text("收起为悬浮球 / 展开:")
-                        .frame(width: 180, alignment: .leading)
-                    Spacer()
-                    Picker("", selection: $store.config.toggleCollapseShortcut.key) {
-                        Text("M 键").tag("m")
-                        Text("H 键").tag("h")
-                        Text("- (减号)").tag("-")
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("启用「缩小为悬浮图标 / 展开」快捷键", isOn: $store.config.toggleCollapseShortcut.isEnabled)
+                        .font(.system(size: 13, weight: .medium))
+
+                    if store.config.toggleCollapseShortcut.isEnabled {
+                        HStack {
+                            Text("快捷触发按键:")
+                                .frame(width: 120, alignment: .leading)
+                            Picker("", selection: $store.config.toggleCollapseShortcut.key) {
+                                Text("M 键").tag("m")
+                                Text("H 键").tag("h")
+                                Text("- (减号)").tag("-")
+                            }
+                            .frame(width: 110)
+                            Text("组合修饰键：⌘ Command")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.leading, 20)
                     }
-                    .frame(width: 110)
-                    Text("修饰键：⌘ Command")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
 
-            Section("默认导航快捷键速查") {
+            Section("默认导航操作速查") {
                 VStack(alignment: .leading, spacing: 8) {
-                    shortcutRow(key: "Esc", desc: "立即收起关闭气泡")
+                    shortcutRow(key: "Esc", desc: "立即收起并关闭气泡")
                     shortcutRow(key: "← / →", desc: "在分类内左右翻页")
                     shortcutRow(key: "⌘ + ← / →", desc: "快速切换前一个/后一个分类")
                     shortcutRow(key: "Tab / ⇧Tab", desc: "正向/逆向循环切换分类")
                     shortcutRow(key: "⌘ + 点击应用", desc: "启动应用并保持气泡展开（连开模式）")
-                    shortcutRow(key: "双击顶部胶囊横条", desc: "钉住状态下快速收起为悬浮球")
+                    shortcutRow(key: "双击顶部胶囊横条", desc: "钉住状态下快速收起为悬浮图标")
                 }
                 .padding(.vertical, 4)
             }
@@ -486,16 +558,16 @@ private struct ExtensionsAndPermissionsTab: View {
     }
 }
 
-// MARK: - Tab 6: About & Updates
+// MARK: - Tab 6: About & Updates (Now hosting Automatic Update Check switch)
 
 private struct AboutSettingsTab: View {
+    @ObservedObject var store: ChestStore
     @ObservedObject var updater = UpdateChecker.shared
 
     var body: some View {
         VStack(spacing: 16) {
             Spacer()
 
-            // App Icon preview
             if let img = NSImage(named: "AppIcon") {
                 Image(nsImage: img)
                     .resizable()
@@ -538,6 +610,11 @@ private struct AboutSettingsTab: View {
                 .disabled(updater.isChecking)
             }
             .padding(.top, 4)
+
+            // Auto check update toggle moved into About tab
+            Toggle("启动时在后台自动检查新版本", isOn: $store.config.autoCheckUpdates)
+                .font(.system(size: 12.5))
+                .padding(.top, 4)
 
             if let msg = updater.checkMessage {
                 Text(msg)

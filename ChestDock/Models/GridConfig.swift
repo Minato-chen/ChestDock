@@ -23,10 +23,12 @@ enum DockTilePreviewGrid: Int, Codable, CaseIterable, Identifiable {
 
 /// Represents a configurable shortcut key with modifiers
 struct KeyShortcut: Codable, Equatable {
+    var isEnabled: Bool = true
     var key: String // e.g. "p", "m", " "
     var modifiers: [String] // e.g. ["command"], ["shift", "command"]
 
     var displayString: String {
+        guard isEnabled else { return "已禁用" }
         var str = ""
         if modifiers.contains("control") { str += "⌃" }
         if modifiers.contains("option") { str += "⌥" }
@@ -52,9 +54,9 @@ struct GridConfig: Codable, Equatable {
     var launchAtLogin: Bool = false
     var autoCheckUpdates: Bool = true
 
-    // Customizable shortcuts
-    var togglePinShortcut: KeyShortcut = KeyShortcut(key: "p", modifiers: ["command"])
-    var toggleCollapseShortcut: KeyShortcut = KeyShortcut(key: "m", modifiers: ["command"])
+    // Customizable shortcuts (with independent enabled switches)
+    var togglePinShortcut: KeyShortcut = KeyShortcut(isEnabled: true, key: "p", modifiers: ["command"])
+    var toggleCollapseShortcut: KeyShortcut = KeyShortcut(isEnabled: true, key: "m", modifiers: ["command"])
 
     var pageSize: Int {
         max(1, rows * columns)

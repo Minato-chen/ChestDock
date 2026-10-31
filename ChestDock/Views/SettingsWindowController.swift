@@ -10,8 +10,8 @@ final class SettingsWindowController {
     private init() {}
 
     func showSettings() {
-        // Hide the floating bubble first so it doesn't cover the Settings window
-        BubblePanelController.shared.hide()
+        // Unconditionally hide the floating bubble immediately so it never covers the Settings window
+        BubblePanelController.shared.hide(forceEvenIfPinned: true)
 
         if let existing = window {
             NSApp.activate(ignoringOtherApps: true)
@@ -29,6 +29,19 @@ final class SettingsWindowController {
         newWindow.minSize = NSSize(width: 620, height: 440)
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
+
+        // Listen for when settings window becomes key to ensure bubble is retracted
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: newWindow,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                if !BubblePanelController.shared.layoutState.isPinned {
+                    BubblePanelController.shared.hide()
+                }
+            }
+        }
 
         self.window = newWindow
         NSApp.activate(ignoringOtherApps: true)

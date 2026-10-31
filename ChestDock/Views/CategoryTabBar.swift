@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CategoryTabBar: View {
     @ObservedObject var store: ChestStore
@@ -12,6 +13,9 @@ struct CategoryTabBar: View {
     @State private var isHoveringPin: Bool = false
     @State private var isHoveringCollapse: Bool = false
     @FocusState private var isRenameFocused: Bool
+
+    // Spring-loaded hover timer for dragging icons onto category tabs
+    @State private var hoverSwitchTimer: Timer?
 
     var body: some View {
         HStack(spacing: 4) {
@@ -52,7 +56,7 @@ struct CategoryTabBar: View {
                 BubblePanelController.shared.togglePin()
             }
             if layoutState.isPinned {
-                Button("收起为悬浮球 (⌘M)") {
+                Button("收起面板 (⌘M)") {
                     BubblePanelController.shared.setCollapsed(true)
                 }
             }
@@ -75,7 +79,6 @@ struct CategoryTabBar: View {
         }
     }
 
-    /// Modern iOS-styled dark/translucent pill hosting the Pin button and Collapse button side-by-side
     private var controlPill: some View {
         let isPinned = layoutState.isPinned
         let isPillVisible = isPinned || isHoveringBar || isHoveringCapsule
@@ -104,7 +107,7 @@ struct CategoryTabBar: View {
             .onHover { isHoveringPin = $0 }
             .help(isPinned ? "已钉住（可拖动面板，点击取消钉住 ⌘P）" : "钉住面板（常驻不收起 ⌘P）")
 
-            // 2. Collapse Button (As referenced in user image: arrow.down.right.and.arrow.up.left)
+            // 2. Collapse Button
             if isPinned {
                 Button {
                     BubblePanelController.shared.toggleCollapse()
@@ -121,7 +124,7 @@ struct CategoryTabBar: View {
                 .buttonStyle(.plain)
                 .scaleEffect(isHoveringCollapse ? 1.08 : 1.0)
                 .onHover { isHoveringCollapse = $0 }
-                .help("缩小为悬浮球 (⌘M)")
+                .help("缩小为悬浮图标 (⌘M)")
                 .transition(.asymmetric(
                     insertion: .scale.combined(with: .opacity),
                     removal: .scale.combined(with: .opacity)
@@ -194,12 +197,16 @@ struct CategoryTabBar: View {
                 store.selectCategory(category.id)
             }
         }
+        // iOS Spring-loaded Drag to switch category or drop directly into category
+        .onDrop(of: [.text, .fileURL], isTargeted: nil) { providers in
+            handleDropOnCategory(providers: providers, targetCategory: category)
+        }
         .contextMenu {
             Button(layoutState.isPinned ? "取消钉住 (⌘P)" : "钉住气泡面板 (⌘P)") {
                 BubblePanelController.shared.togglePin()
             }
             if layoutState.isPinned {
-                Button("收起为悬浮球 (⌘M)") {
+                Button("收起面板 (⌘M)") {
                     BubblePanelController.shared.setCollapsed(true)
                 }
             }
@@ -232,6 +239,57 @@ struct CategoryTabBar: View {
                 SettingsWindowController.shared.showSettings()
             }
         }
+    }
+
+    private func handleDropOnCategory(providers: [NSItemProvider], targetCategory: AppCategory) -> Bool {
+        // 1. Check if dragging an existing item by UUID string
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
+                provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { data, _ in
+                    let uuidString: String?
+                    if let str = data as? String {
+                        uuidString = str
+                    } else if let d = data as? Data, let s = String(data: d, encoding: .utf8) {
+                        uuidString = s
+                    } else {
+                        uuidString = nil
+                    }
+                    if let uuidString = uuidString, let itemId = UUID(uuidString: uuidString) {
+                        Task { @MainActor in
+                            if let currentCatId = store.selectedCategory?.id, currentCatId != targetCategory.id {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                                    store.moveItem(itemId, from: currentCatId, to: targetCategory.id)
+                                    store.selectCategory(targetCategory.id)
+                                }
+                            }
+                        }
+                    }
+                }
+                return true
+            }
+        }
+
+        // 2. External file URLs dragged onto category
+        var urls: [URL] = []
+        let group = DispatchGroup()
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                group.enter()
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
+                    defer { group.leave() }
+                    if let data = data as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                        urls.append(url)
+                    }
+                }
+            }
+        }
+        group.notify(queue: .main) {
+            if !urls.isEmpty {
+                store.addItems(from: urls, to: targetCategory.id)
+                store.selectCategory(targetCategory.id)
+            }
+        }
+        return true
     }
 
     private func beginRename(_ category: AppCategory) {

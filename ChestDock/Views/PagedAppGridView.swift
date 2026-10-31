@@ -67,7 +67,9 @@ struct PagedAppGridView: View {
                 AppIconItemView(item: item, store: store)
                     .onDrag {
                         self.draggedItem = item
-                        return NSItemProvider(object: item.id.uuidString as NSString)
+                        let provider = NSItemProvider(object: item.id.uuidString as NSString)
+                        provider.suggestedName = item.displayName
+                        return provider
                     }
                     .onDrop(
                         of: [.text],
@@ -114,7 +116,6 @@ struct PagedAppGridView: View {
                         }
                 }
             } else {
-                // Single subtle dot to preserve iOS folder balance
                 Circle()
                     .fill(Color.primary.opacity(0.32))
                     .frame(width: 6, height: 6)
@@ -123,7 +124,7 @@ struct PagedAppGridView: View {
     }
 }
 
-// MARK: - Drag Reorder Delegate
+// MARK: - Drag Reorder Delegate with iOS-style Spring Animation
 
 private struct GridReorderDropDelegate: DropDelegate {
     let targetItem: DockItem
@@ -132,7 +133,7 @@ private struct GridReorderDropDelegate: DropDelegate {
 
     func dropEntered(info: DropInfo) {
         guard let dragged = draggedItem, dragged.id != targetItem.id else { return }
-        withAnimation(.spring(response: 0.26, dampingFraction: 0.8)) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
             store.reorderItem(draggedItemId: dragged.id, targetItemId: targetItem.id)
         }
     }
@@ -196,7 +197,6 @@ private struct TrackpadPagerOverlay: NSViewRepresentable {
                     return event
                 }
 
-                // Reset gesture state on begin or after a pause
                 if event.phase == .began || (event.timestamp - self.lastWheelTimestamp > 0.35) {
                     self.accumulatedDeltaX = 0
                     self.hasTriggeredInCurrentGesture = false

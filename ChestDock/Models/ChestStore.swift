@@ -225,6 +225,11 @@ final class ChestStore: ObservableObject {
         clampCurrentPage()
     }
 
+    func moveItems(fromOffsets source: IndexSet, toOffset destination: Int, in categoryId: UUID) {
+        guard let catIdx = categories.firstIndex(where: { $0.id == categoryId }) else { return }
+        categories[catIdx].items.move(fromOffsets: source, toOffset: destination)
+    }
+
     func reorderItem(draggedItemId: UUID, targetItemId: UUID, in categoryId: UUID? = nil) {
         guard draggedItemId != targetItemId else { return }
         let targetCatId = categoryId ?? selectedCategory?.id

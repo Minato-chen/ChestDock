@@ -28,6 +28,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Handle files/applications dragged onto the ChestDock icon in the macOS Dock
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        let urls = filenames.map { URL(fileURLWithPath: $0) }
+        guard !urls.isEmpty else { return }
+        ChestStore.shared.addItems(from: urls)
+        // Show bubble briefly to confirm addition
+        BubblePanelController.shared.showFromDock()
+        sender.reply(toOpenOrPrint: .success)
+    }
+
     /// Invoked whenever the user clicks the ChestDock icon in the macOS Dock.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         BubblePanelController.shared.toggleFromDockClick()
