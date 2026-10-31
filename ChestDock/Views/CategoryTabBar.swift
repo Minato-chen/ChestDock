@@ -55,7 +55,7 @@ struct CategoryTabBar: View {
             Button(layoutState.isPinned ? "取消钉住 (⌘P)" : "钉住气泡面板 (⌘P)") {
                 BubblePanelController.shared.togglePin()
             }
-            if layoutState.isPinned {
+            if layoutState.isPinned && store.config.enableFloatingTrigger {
                 Button("收起面板 (⌘M)") {
                     BubblePanelController.shared.setCollapsed(true)
                 }
@@ -81,10 +81,35 @@ struct CategoryTabBar: View {
 
     private var controlPill: some View {
         let isPinned = layoutState.isPinned
+        let allowsCollapse = store.config.enableFloatingTrigger
         let isPillVisible = isPinned || isHoveringBar || isHoveringCapsule
 
         return HStack(spacing: 4) {
-            // 1. Pin Button
+            // 1. Collapse Button (Unfolds on the LEFT when pinned AND floating trigger is enabled)
+            if isPinned && allowsCollapse {
+                Button {
+                    BubblePanelController.shared.toggleCollapse()
+                } label: {
+                    Image(systemName: "arrow.down.right.and.arrow.up.left")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(Color.primary.opacity(0.85))
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(isHoveringCollapse ? Color.primary.opacity(0.12) : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+                .scaleEffect(isHoveringCollapse ? 1.08 : 1.0)
+                .onHover { isHoveringCollapse = $0 }
+                .help("缩小为边缘悬浮图标 (⌘M)")
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity).combined(with: .scale(scale: 0.8)),
+                    removal: .move(edge: .trailing).combined(with: .opacity).combined(with: .scale(scale: 0.8))
+                ))
+            }
+
+            // 2. Pin Button (Anchored on the RIGHT)
             Button {
                 BubblePanelController.shared.togglePin()
             } label: {
@@ -106,30 +131,6 @@ struct CategoryTabBar: View {
             .scaleEffect(isHoveringPin ? 1.08 : 1.0)
             .onHover { isHoveringPin = $0 }
             .help(isPinned ? "已钉住（可拖动面板，点击取消钉住 ⌘P）" : "钉住面板（常驻不收起 ⌘P）")
-
-            // 2. Collapse Button
-            if isPinned {
-                Button {
-                    BubblePanelController.shared.toggleCollapse()
-                } label: {
-                    Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .foregroundStyle(Color.primary.opacity(0.85))
-                        .frame(width: 24, height: 24)
-                        .background(
-                            Circle()
-                                .fill(isHoveringCollapse ? Color.primary.opacity(0.12) : Color.clear)
-                        )
-                }
-                .buttonStyle(.plain)
-                .scaleEffect(isHoveringCollapse ? 1.08 : 1.0)
-                .onHover { isHoveringCollapse = $0 }
-                .help("缩小为悬浮图标 (⌘M)")
-                .transition(.asymmetric(
-                    insertion: .scale.combined(with: .opacity),
-                    removal: .scale.combined(with: .opacity)
-                ))
-            }
         }
         .padding(.horizontal, isPinned ? 5 : 2)
         .padding(.vertical, 3)
@@ -142,7 +143,7 @@ struct CategoryTabBar: View {
                 )
         )
         .opacity(isPillVisible ? 1.0 : 0.0)
-        .animation(.spring(response: 0.26, dampingFraction: 0.78), value: isPinned)
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isPinned)
         .animation(.easeInOut(duration: 0.16), value: isPillVisible)
         .onHover { isHoveringCapsule = $0 }
     }
@@ -205,7 +206,7 @@ struct CategoryTabBar: View {
             Button(layoutState.isPinned ? "取消钉住 (⌘P)" : "钉住气泡面板 (⌘P)") {
                 BubblePanelController.shared.togglePin()
             }
-            if layoutState.isPinned {
+            if layoutState.isPinned && store.config.enableFloatingTrigger {
                 Button("收起面板 (⌘M)") {
                     BubblePanelController.shared.setCollapsed(true)
                 }

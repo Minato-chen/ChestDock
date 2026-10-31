@@ -61,9 +61,6 @@ struct AppIconItemView: View {
         .onTapGesture {
             store.launchItem(item)
         }
-        .onDrop(of: [.fileURL], isTargeted: $isDropTarget) { providers in
-            handleDroppedFiles(providers: providers)
-        }
         .contextMenu {
             Button("打开「\(item.displayName)」") {
                 store.launchItem(item)
@@ -103,35 +100,5 @@ struct AppIconItemView: View {
                 }
             }
         }
-    }
-
-    private func handleDroppedFiles(providers: [NSItemProvider]) -> Bool {
-        guard item.type == .application else { return false }
-        var collectedURLs: [URL] = []
-        let group = DispatchGroup()
-
-        for provider in providers {
-            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                group.enter()
-                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
-                    defer { group.leave() }
-                    if let data = data as? Data,
-                       let url = URL(dataRepresentation: data, relativeTo: nil) {
-                        collectedURLs.append(url)
-                    }
-                }
-            }
-        }
-
-        group.notify(queue: .main) {
-            guard !collectedURLs.isEmpty else { return }
-            let allApps = collectedURLs.allSatisfy { $0.path.lowercased().hasSuffix(".app") }
-            if allApps {
-                store.addItems(from: collectedURLs)
-            } else {
-                store.openFiles(collectedURLs, withApp: item)
-            }
-        }
-        return true
     }
 }

@@ -40,12 +40,13 @@ struct KeyShortcut: Codable, Equatable {
 }
 
 struct GridConfig: Codable, Equatable {
+    var version: Int = 1
     var rows: Int = 3
     var columns: Int = 4
     var iconSize: Double = 60.0
     var showRunningIndicator: Bool = true
     var showMenuBarIcon: Bool = true
-    var dockPreviewGrid: DockTilePreviewGrid = .staticAppIcon
+    var dockPreviewGrid: DockTilePreviewGrid = .twoByTwo
     var syncDockIconWithActiveCategory: Bool = false
     /// Phase 2 extension switch: allow folders & files to be added alongside .app bundles
     var allowFoldersAndFiles: Bool = false
@@ -54,9 +55,60 @@ struct GridConfig: Codable, Equatable {
     var launchAtLogin: Bool = false
     var autoCheckUpdates: Bool = true
 
-    // Customizable shortcuts (with independent enabled switches)
-    var togglePinShortcut: KeyShortcut = KeyShortcut(isEnabled: true, key: "p", modifiers: ["command"])
-    var toggleCollapseShortcut: KeyShortcut = KeyShortcut(isEnabled: true, key: "m", modifiers: ["command"])
+    // Customizable shortcuts (with independent enabled switches, disabled by default)
+    var togglePinShortcut: KeyShortcut = KeyShortcut(isEnabled: false, key: "p", modifiers: ["command"])
+    var toggleCollapseShortcut: KeyShortcut = KeyShortcut(isEnabled: false, key: "m", modifiers: ["command"])
+
+    // Floating Trigger & Edge Snapping
+    var enableFloatingTrigger: Bool = false
+    var autoSnapToEdge: Bool = true
+
+    enum CodingKeys: String, CodingKey {
+        case version, rows, columns, iconSize, showRunningIndicator, showMenuBarIcon
+        case dockPreviewGrid, syncDockIconWithActiveCategory, allowFoldersAndFiles
+        case launchAtLogin, autoCheckUpdates, togglePinShortcut, toggleCollapseShortcut
+        case enableFloatingTrigger, autoSnapToEdge
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.version = (try? container.decode(Int.self, forKey: .version)) ?? 1
+        self.rows = (try? container.decode(Int.self, forKey: .rows)) ?? 3
+        self.columns = (try? container.decode(Int.self, forKey: .columns)) ?? 4
+        self.iconSize = (try? container.decode(Double.self, forKey: .iconSize)) ?? 60.0
+        self.showRunningIndicator = (try? container.decode(Bool.self, forKey: .showRunningIndicator)) ?? true
+        self.showMenuBarIcon = (try? container.decode(Bool.self, forKey: .showMenuBarIcon)) ?? true
+        self.dockPreviewGrid = (try? container.decode(DockTilePreviewGrid.self, forKey: .dockPreviewGrid)) ?? .twoByTwo
+        self.syncDockIconWithActiveCategory = (try? container.decode(Bool.self, forKey: .syncDockIconWithActiveCategory)) ?? false
+        self.allowFoldersAndFiles = (try? container.decode(Bool.self, forKey: .allowFoldersAndFiles)) ?? false
+        self.launchAtLogin = (try? container.decode(Bool.self, forKey: .launchAtLogin)) ?? false
+        self.autoCheckUpdates = (try? container.decode(Bool.self, forKey: .autoCheckUpdates)) ?? true
+        self.togglePinShortcut = (try? container.decode(KeyShortcut.self, forKey: .togglePinShortcut)) ?? KeyShortcut(isEnabled: false, key: "p", modifiers: ["command"])
+        self.toggleCollapseShortcut = (try? container.decode(KeyShortcut.self, forKey: .toggleCollapseShortcut)) ?? KeyShortcut(isEnabled: false, key: "m", modifiers: ["command"])
+        self.enableFloatingTrigger = (try? container.decode(Bool.self, forKey: .enableFloatingTrigger)) ?? false
+        self.autoSnapToEdge = (try? container.decode(Bool.self, forKey: .autoSnapToEdge)) ?? true
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(version, forKey: .version)
+        try container.encode(rows, forKey: .rows)
+        try container.encode(columns, forKey: .columns)
+        try container.encode(iconSize, forKey: .iconSize)
+        try container.encode(showRunningIndicator, forKey: .showRunningIndicator)
+        try container.encode(showMenuBarIcon, forKey: .showMenuBarIcon)
+        try container.encode(dockPreviewGrid, forKey: .dockPreviewGrid)
+        try container.encode(syncDockIconWithActiveCategory, forKey: .syncDockIconWithActiveCategory)
+        try container.encode(allowFoldersAndFiles, forKey: .allowFoldersAndFiles)
+        try container.encode(launchAtLogin, forKey: .launchAtLogin)
+        try container.encode(autoCheckUpdates, forKey: .autoCheckUpdates)
+        try container.encode(togglePinShortcut, forKey: .togglePinShortcut)
+        try container.encode(toggleCollapseShortcut, forKey: .toggleCollapseShortcut)
+        try container.encode(enableFloatingTrigger, forKey: .enableFloatingTrigger)
+        try container.encode(autoSnapToEdge, forKey: .autoSnapToEdge)
+    }
 
     var pageSize: Int {
         max(1, rows * columns)

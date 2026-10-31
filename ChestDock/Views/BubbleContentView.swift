@@ -93,7 +93,7 @@ struct BubbleContentView: View {
 
             // Main Content padded away from the tail edge
             VStack(spacing: 2) {
-                if layoutState.isPinned {
+                if layoutState.isPinned && store.config.enableFloatingTrigger {
                     Capsule()
                         .fill(Color.primary.opacity(0.24))
                         .frame(width: 36, height: 4)

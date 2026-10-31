@@ -161,21 +161,31 @@ private struct CategoriesManagementTab: View {
             // Right Column: Items in Selected Category (Supports Reordering & Moving)
             VStack(alignment: .leading, spacing: 8) {
                 if let category = activeCategory {
-                    HStack {
-                        Text("「\(category.name)」中的项目 (\(category.items.count))")
-                            .font(.headline)
-                        Spacer()
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .center, spacing: 4) {
+                            Text("「\(category.name)」")
+                                .font(.headline)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Text("(\(category.items.count))")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+
+                            Button {
+                                store.presentAddItemsPanel(for: category.id)
+                            } label: {
+                                Label(
+                                    store.config.allowFoldersAndFiles ? "添加项目..." : "添加应用...",
+                                    systemImage: "plus.circle.fill"
+                                )
+                            }
+                        }
+
                         Text("可拖拽调整顺序或拖至左侧分类")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Button {
-                            store.presentAddItemsPanel(for: category.id)
-                        } label: {
-                            Label(
-                                store.config.allowFoldersAndFiles ? "添加项目..." : "添加应用...",
-                                systemImage: "plus.circle.fill"
-                            )
-                        }
                     }
 
                     List {
@@ -280,7 +290,8 @@ private struct CategoriesManagementTab: View {
 
     private func addNewCategory() {
         let name = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let created = store.addCategory(name: name.isEmpty ? "新分类" : name)
+        let trimmedName = String(name.prefix(12))
+        let created = store.addCategory(name: trimmedName.isEmpty ? "新分类" : trimmedName)
         newCategoryName = ""
         selectedCategoryId = created.id
     }
@@ -348,58 +359,105 @@ private struct CategoryNameRow: View {
                 nameText = newValue
             }
             .onSubmit {
-                store.renameCategory(id: category.id, newName: nameText)
+                let trimmed = String(nameText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(12))
+                if !trimmed.isEmpty {
+                    store.renameCategory(id: category.id, newName: trimmed)
+                }
             }
     }
 }
 
-// MARK: - Tab 3: Grid & Appearance (Equal 2x2 to 6x8 range)
+// MARK: - Tab 3: Grid & Appearance (Stepper & TextField)
 
 private struct LayoutAppearanceTab: View {
     @ObservedObject var store: ChestStore
 
+    @State private var rowsText: String = ""
+    @State private var columnsText: String = ""
+    @State private var iconSizeText: String = ""
+
     var body: some View {
         Form {
-            Section("气泡网格行列自定义 (从 2×2 起相同规格)") {
-                HStack {
-                    Text("网格行数 (Rows): \(store.config.rows) 行")
-                        .frame(width: 170, alignment: .leading)
-                    Slider(
+            Section("气泡网格行列自定义 (1~5 行，1~9 列)") {
+                HStack(spacing: 12) {
+                    Text("网格行数 (Rows):")
+                        .frame(width: 140, alignment: .leading)
+
+                    TextField("行数", text: $rowsText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 58)
+                        .multilineTextAlignment(.center)
+                        .onSubmit { commitRows() }
+
+                    Stepper("", value: $store.config.rows, in: 1...5)
+                        .labelsHidden()
+                        .onChange(of: store.config.rows) { _, newVal in
+                            rowsText = "\(newVal)"
+                        }
+
+                    Text("行 (范围 1 ~ 5)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    Text("网格列数 (Columns):")
+                        .frame(width: 140, alignment: .leading)
+
+                    TextField("列数", text: $columnsText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 58)
+                        .multilineTextAlignment(.center)
+                        .onSubmit { commitColumns() }
+
+                    Stepper("", value: $store.config.columns, in: 1...9)
+                        .labelsHidden()
+                        .onChange(of: store.config.columns) { _, newVal in
+                            columnsText = "\(newVal)"
+                        }
+
+                    Text("列 (范围 1 ~ 9)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    Text("图标尺寸 (Icon Size):")
+                        .frame(width: 140, alignment: .leading)
+
+                    TextField("尺寸", text: $iconSizeText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 58)
+                        .multilineTextAlignment(.center)
+                        .onSubmit { commitIconSize() }
+
+                    Stepper(
+                        "",
                         value: Binding(
-                            get: { Double(store.config.rows) },
-                            set: { store.config.rows = Int($0.rounded()) }
+                            get: { Int(store.config.iconSize) },
+                            set: { store.config.iconSize = Double($0) }
                         ),
-                        in: 2...6,
-                        step: 1
+                        in: 36...96,
+                        step: 4
                     )
+                    .labelsHidden()
+                    .onChange(of: store.config.iconSize) { _, newVal in
+                        iconSizeText = "\(Int(newVal))"
+                    }
+
+                    Text("pt (范围 36 ~ 96)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
-                HStack {
-                    Text("网格列数 (Columns): \(store.config.columns) 列")
-                        .frame(width: 170, alignment: .leading)
-                    Slider(
-                        value: Binding(
-                            get: { Double(store.config.columns) },
-                            set: { store.config.columns = Int($0.rounded()) }
-                        ),
-                        in: 2...8,
-                        step: 1
-                    )
-                }
-
-                HStack {
-                    Text("图标尺寸: \(Int(store.config.iconSize)) pt")
-                        .frame(width: 170, alignment: .leading)
-                    Slider(
-                        value: $store.config.iconSize,
-                        in: 44...80,
-                        step: 2
-                    )
-                }
-
-                Text("当前单页容量：\(store.config.rows) × \(store.config.columns) = \(store.config.pageSize) 个图标，超出自动横向翻页。支持最小 2×2 精简规格。")
+                Text("当前单页容量：\(store.config.rows) × \(store.config.columns) = \(store.config.pageSize) 个图标，超出自动横向翻页。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            .onAppear {
+                rowsText = "\(store.config.rows)"
+                columnsText = "\(store.config.columns)"
+                iconSizeText = "\(Int(store.config.iconSize))"
             }
 
             Section("Dock 图标与状态显示") {
@@ -413,8 +471,52 @@ private struct LayoutAppearanceTab: View {
                 Toggle("Dock 缩略图跟随当前选中的分类变化", isOn: $store.config.syncDockIconWithActiveCategory)
                 Toggle("在气泡内显示正在运行的应用指示圆点 (•)", isOn: $store.config.showRunningIndicator)
             }
+
+            Section("边缘悬浮与吸附交互") {
+                Toggle("允许钉住时缩小为边缘悬浮小图标", isOn: $store.config.enableFloatingTrigger)
+                if store.config.enableFloatingTrigger {
+                    Toggle("拖动悬浮图标松手后自动吸附至左/右屏幕边缘", isOn: $store.config.autoSnapToEdge)
+                    Text("开启后支持在钉住时将面板收纳至屏幕两侧边缘，多显示器中缝自动居中跨屏显示，且避开系统 Dock 与菜单栏。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("默认关闭。钉住面板仅保持常驻展开，不显示缩小按钮，减少桌面视觉干扰。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .formStyle(.grouped)
+    }
+
+    private func commitRows() {
+        if let val = Int(rowsText) {
+            let clamped = max(1, min(5, val))
+            store.config.rows = clamped
+            rowsText = "\(clamped)"
+        } else {
+            rowsText = "\(store.config.rows)"
+        }
+    }
+
+    private func commitColumns() {
+        if let val = Int(columnsText) {
+            let clamped = max(1, min(9, val))
+            store.config.columns = clamped
+            columnsText = "\(clamped)"
+        } else {
+            columnsText = "\(store.config.columns)"
+        }
+    }
+
+    private func commitIconSize() {
+        if let val = Double(iconSizeText) {
+            let clamped = max(36, min(96, val))
+            store.config.iconSize = clamped
+            iconSizeText = "\(Int(clamped))"
+        } else {
+            iconSizeText = "\(Int(store.config.iconSize))"
+        }
     }
 }
 

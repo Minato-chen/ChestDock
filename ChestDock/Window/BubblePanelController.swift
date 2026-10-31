@@ -362,6 +362,9 @@ final class BubblePanelController {
         newPanel.isCollapsedProvider = { [weak self] in
             self?.layoutState.isCollapsed ?? false
         }
+        newPanel.onDragEnded = { [weak self] in
+            self?.handlePanelDragEnded()
+        }
 
         let rootView = BubbleContentView(
             store: ChestStore.shared,
@@ -400,6 +403,77 @@ final class BubblePanelController {
         if layoutState.isDetachedFromDock != shouldDetach {
             layoutState.isDetachedFromDock = shouldDetach
         }
+    }
+
+    /// Handles automatic edge snapping for the floating icon when dragging ends
+    private func handlePanelDragEnded() {
+        guard layoutState.isPinned, layoutState.isCollapsed else { return }
+        guard ChestStore.shared.config.autoSnapToEdge, let panel = panel else { return }
+
+        let currentFrame = panel.frame
+        let mouseLocation = NSEvent.mouseLocation
+
+        // Find the screen containing the mouse or panel center
+        let targetScreen = NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
+            ?? panel.screen
+            ?? NSScreen.main
+            ?? NSScreen.screens[0]
+
+        let visibleFrame = targetScreen.visibleFrame
+
+        // Clamping vertical coordinate inside visible screen (safely above Dock and below MenuBar)
+        let minY = visibleFrame.minY + 12
+        let maxY = visibleFrame.maxY - currentFrame.height - 12
+        let clampedY = max(minY, min(currentFrame.origin.y, maxY))
+
+        // Multi-monitor screen boundary detection:
+        // Check if there is an adjacent screen immediately to the left or right
+        let hasScreenToLeft = NSScreen.screens.contains { other in
+            other != targetScreen && abs(other.frame.maxX - targetScreen.frame.minX) < 10
+        }
+        let hasScreenToRight = NSScreen.screens.contains { other in
+            other != targetScreen && abs(other.frame.minX - targetScreen.frame.maxX) < 10
+        }
+
+        // Distance to left and right screen borders
+        let distToLeft = currentFrame.minX - targetScreen.frame.minX
+        let distToRight = targetScreen.frame.maxX - currentFrame.maxX
+
+        // Snap threshold: only snap if dropped within 80pt from the edge; otherwise leave free
+        let snapThreshold: CGFloat = 80.0
+
+        let targetX: CGFloat
+        if distToLeft <= snapThreshold && distToLeft <= distToRight {
+            // Near Left Edge
+            if hasScreenToLeft {
+                targetX = targetScreen.frame.minX - (currentFrame.width / 2)
+            } else {
+                targetX = targetScreen.frame.minX - 12
+            }
+        } else if distToRight <= snapThreshold && distToRight < distToLeft {
+            // Near Right Edge
+            if hasScreenToRight {
+                targetX = targetScreen.frame.maxX - (currentFrame.width / 2)
+            } else {
+                targetX = targetScreen.frame.maxX - currentFrame.width + 12
+            }
+        } else {
+            // Not close enough to either edge: keep user's dropped X position (clamped inside visible screen)
+            let minX = visibleFrame.minX + 6
+            let maxX = visibleFrame.maxX - currentFrame.width - 6
+            targetX = max(minX, min(currentFrame.origin.x, maxX))
+        }
+
+        let targetFrame = NSRect(
+            x: targetX,
+            y: clampedY,
+            width: currentFrame.width,
+            height: currentFrame.height
+        )
+
+        isProgrammaticFrameChange = true
+        panel.setFrame(targetFrame, display: true, animate: true)
+        isProgrammaticFrameChange = false
     }
 
     private func computePanelSize(for config: GridConfig, edge: DockEdge) -> CGSize {

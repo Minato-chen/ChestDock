@@ -5,6 +5,7 @@ final class BubblePanel: NSPanel {
     var onEscapePressed: (() -> Void)?
     var isPinnedProvider: (() -> Bool)?
     var isCollapsedProvider: (() -> Bool)?
+    var onDragEnded: (() -> Void)?
 
     private var canTrackWindowDrag = false
     private var isDraggingWindow = false
@@ -24,7 +25,7 @@ final class BubblePanel: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.hasShadow = true
+        self.hasShadow = false // Disable system rectangular window shadow to avoid grey border artifacts at squircle corners
         self.isMovableByWindowBackground = false // Controlled via manual drag tracking
         self.hidesOnDeactivate = false
         self.acceptsMouseMovedEvents = true
@@ -76,6 +77,7 @@ final class BubblePanel: NSPanel {
             if isDraggingWindow {
                 isDraggingWindow = false
                 canTrackWindowDrag = false
+                onDragEnded?()
                 return
             }
             canTrackWindowDrag = false

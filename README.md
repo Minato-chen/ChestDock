@@ -45,7 +45,7 @@
 ## 📥 安装与运行
 
 ### 方式 1：下载预编译 DMG（推荐）
-1. 从 [Releases](https://github.com/Minato-chen/ChestDock/releases) 页面下载最新的 `ChestDock-1.1.0.dmg`。
+1. 从 [Releases](https://github.com/Minato-chen/ChestDock/releases) 页面下载最新的 `ChestDock-1.1.1.dmg`。
 2. 双击打开，将 `ChestDock.app` 拖入 `Applications`（应用程序文件夹）即可。
 3. **首次打开提示**：由于个人独立开发者证书未进行公证，首次打开时若提示“无法验证开发者”，请在 Finder 中对 `ChestDock.app` **右键 -> 打开** 即可正常启动。
 

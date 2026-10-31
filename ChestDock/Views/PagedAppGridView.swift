@@ -65,6 +65,7 @@ struct PagedAppGridView: View {
         LazyVGrid(columns: gridColumns, spacing: 8) {
             ForEach(items) { item in
                 AppIconItemView(item: item, store: store)
+                    .opacity(draggedItem?.id == item.id ? 0.35 : 1.0)
                     .onDrag {
                         self.draggedItem = item
                         let provider = NSItemProvider(object: item.id.uuidString as NSString)
@@ -140,6 +141,10 @@ private struct GridReorderDropDelegate: DropDelegate {
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
         DropProposal(operation: .move)
+    }
+
+    func validateDrop(info: DropInfo) -> Bool {
+        return true
     }
 
     func performDrop(info: DropInfo) -> Bool {
