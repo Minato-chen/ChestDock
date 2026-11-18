@@ -1,75 +1,123 @@
-# ChestDock 🗂️
+<div align="center">
 
-> 专为 macOS 设计的极简、轻量级 iOS 风格 Dock 应用文件夹与悬浮抽屉。
+<img src="ChestDock/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="112" alt="ChestDock Icon" />
 
-<p align="center">
-  <img src="ChestDock/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="128" alt="ChestDock Icon" />
+<h1>ChestDock</h1>
+
+<p><strong>Bring iOS-style paginated folders to your macOS Dock.</strong></p>
+<p>A lightweight, native Swift popover launcher with category tabs, customizable grids, and a pinnable floating drawer — no bloated Launchpad clones.</p>
+
+<p>
+  <a href="https://github.com/Minato-chen/ChestDock/releases/latest"><img src="https://img.shields.io/github/v/release/Minato-chen/ChestDock?style=flat-square&color=007AFF" alt="Latest Release" /></a>
+  <img src="https://img.shields.io/badge/macOS-14.0%2B-lightgrey?style=flat-square" alt="macOS 14.0+" />
+  <img src="https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square" alt="Swift 5.9" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" /></a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/Minato-chen/ChestDock/releases"><img src="https://img.shields.io/github/v/release/Minato-chen/ChestDock?color=blue&style=flat-square" alt="GitHub Release"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%2014.0%2B-lightgrey?style=flat-square" alt="Platform">
-  <img src="https://img.shields.io/badge/Swift-5.9-orange?style=flat-square" alt="Swift">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
+<p>
+  <a href="#installation">Download</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#shortcuts--gestures">Shortcuts</a> ·
+  <a href="#privacy--permissions">Privacy</a> ·
+  <a href="README_zh.md">简体中文</a>
 </p>
 
----
+<br />
 
-## ✨ 核心特性
+<img src="docs/preview.jpg" width="600" alt="ChestDock Preview" />
 
-- 📱 **iOS 风格文件夹**：点击 Dock 图标在正上方弹出带自适应小尾巴的毛玻璃悬浮气泡，点完应用自动收起，零打扰。
-- 📑 **顶部分类与翻页网格**：支持顶部分类标签切换（如“常用”、“开发”、“创作”），每个分类支持触控板双指左右滑动或鼠标翻页。
-- 📌 **钉住（Pin）与工作台拖拽**：一键钉住面板，支持按住顶部横条拖到屏幕任意位置；拖离后小尾巴自动平滑收缩为悬浮窗。
-- ↘↖ **收起为悬浮球 (Collapse)**：钉住后可一键将面板缩小为极简 `48×48` 悬浮小球，临时腾出桌面空间，单击立即就地展开。
-- 🌐 **Dock 与菜单栏双入口瞬切**：支持屏幕顶部菜单栏入口，点击即在菜单栏下方弹出朝下小尾巴；在 Dock 与菜单栏之间点击可瞬时无缝切换位置。
-- 🎨 **自由定制网格**：自由调节 `2~6` 行 × `3~8` 列以及图标大小，气泡自适应平滑缩放。
-- 🚀 **原生极速与极低资源占用**：纯 Swift / SwiftUI / AppKit 打造，常驻后台内存仅约 20~30MB，无 Electron 臃肿负担。
+</div>
 
 ---
 
-## ⌨️ 快捷键速查
+## Features
 
-| 快捷键 | 功能描述 |
-| :--- | :--- |
-| **`Esc`** | 立即收起并关闭面板 |
-| **`⌘P`** (可自定义) | 钉住 / 取消钉住气泡面板 |
-| **`⌘M` / `⌘-`** (可自定义) | 钉住状态下：缩小为悬浮球 / 展开 |
-| **双击顶部胶囊横条** | 钉住状态下：快速收起为悬浮球 |
-| **`←` / `→`** | 分类内翻页 |
-| **`⌘ + ←` / `⌘ + →`** | 切换上一个 / 下一个分类 |
-| **`Tab` / `⇧ + Tab`** | 循环正向 / 逆向切换分类 |
-| **`⌘ + 点击应用`** | 启动目标应用并保持面板展开（连开模式） |
+- **iOS-Style Paginated Popover** — Click the Dock icon to open a frosted-glass bubble with an adaptive pointer tail. Switch category tabs on top and swipe horizontally via trackpad or scroll wheel. Launching an app dismisses the bubble automatically, or hold `⌘` / `⌥` while clicking to keep it open.
+- **Pin, Detach & Collapse** — Pin the popover to keep it on screen and drag it anywhere; the pointer tail smoothly retracts when detached. Collapse a pinned panel into a `38×38` floating pill (via shortcut, context menu, or optional double-click top handle) and click to expand in place.
+- **Dock & Menu Bar Dual Entry** — Automatically adapts to Bottom, Left, or Right Dock positions, with an optional Menu Bar icon for instant top-down access.
+- **Customizable Grid & Live Dock Icon** — Configure `1–5` rows × `1–9` columns and `36–96 pt` icon sizes. Display a `2×2` or `3×3` live mini-grid preview on the Dock icon (optionally synced to the active category), or use the static app icon. Drag and drop apps directly onto the bubble to add them.
+- **Native SwiftUI & AppKit** — Built strictly with native macOS frameworks (`Swift 5.9`, `SwiftUI`, `AppKit`) with zero Electron overhead.
 
 ---
 
-## 📥 安装与运行
+## Installation
 
-### 方式 1：下载预编译 DMG（推荐）
-1. 从 [Releases](https://github.com/Minato-chen/ChestDock/releases) 页面下载最新的 `ChestDock-1.1.1.dmg`。
-2. 双击打开，将 `ChestDock.app` 拖入 `Applications`（应用程序文件夹）即可。
-3. **首次打开提示**：由于个人独立开发者证书未进行公证，首次打开时若提示“无法验证开发者”，请在 Finder 中对 `ChestDock.app` **右键 -> 打开** 即可正常启动。
+1. Download the latest `.dmg` from [**GitHub Releases**](https://github.com/Minato-chen/ChestDock/releases/latest).
+2. Open the disk image and drag **ChestDock.app** into your **Applications** folder.
 
-### 方式 2：从源码编译
+<details>
+<summary>First launch note (unnotarized personal build)</summary>
+
+ChestDock is signed ad-hoc without an Apple Developer notarization certificate. On first launch, if macOS displays *"ChestDock cannot be opened because the developer cannot be verified"*:
+
+1. Locate `ChestDock.app` in **Applications**, **Right-click (or `⌃` + Click) → Open**, then confirm **Open**; or
+2. Open **System Settings → Privacy & Security** and click **Open Anyway**.
+
+</details>
+
+---
+
+## Shortcuts & Gestures
+
+<details>
+<summary>View all keyboard shortcuts and mouse gestures</summary>
+
+| Input | Action | Notes |
+| :--- | :--- | :--- |
+| `Esc` | Close popover | Works even when pinned |
+| `←` / `→` | Previous / Next page | Also supports horizontal trackpad swipe / scroll wheel |
+| `⌘ + ←` / `⌘ + →` (or `⌥`) | Previous / Next category | — |
+| `Tab` / `⇧ + Tab` | Cycle categories forward / backward | — |
+| `⌘ + Click` or `⌥ + Click` | Launch app without closing popover | Multi-launch mode |
+| `⌘,` | Open Settings | Also available via Right-click menu |
+| Pin shortcut (e.g. `⌘P`) | Pin / Unpin popover | Disabled by default; enable & customize in Settings |
+| Collapse shortcut (e.g. `⌘M`) | Collapse / Expand pinned popover | Disabled by default; enable & customize in Settings |
+| Double-click top pill handle | Collapse pinned popover | Requires floating handle enabled in Settings |
+
+</details>
+
+<details>
+<summary>Settings & Customization overview</summary>
+
+- **General**: Launch at login (`SMAppService`), automatic update check, Menu Bar icon toggle.
+- **Categories & Apps**: Create, rename, reorder, and delete categories; batch-add apps or drag & drop directly onto the bubble; optional support for folders and files.
+- **Grid & Appearance**: Adjust rows (`1–5`), columns (`1–9`), icon size (`36–96 pt`), running-app indicator dots, and Dock tile preview mode (`Static` / `2×2` / `3×3`).
+- **Shortcuts & Floating**: Configure optional Pin/Collapse hotkeys and floating handle behavior.
+
+</details>
+
+---
+
+## Privacy & Permissions
+
+ChestDock is designed to run locally on your Mac with zero telemetry:
+
+- **No Analytics or Tracking**: ChestDock collects no usage data, crash telemetry, or personal information.
+- **Local-Only Storage**: Categories, layout preferences, and app references are saved locally at `~/Library/Application Support/ChestDock/state.json`.
+- **Single Optional Network Call**: Only `UpdateChecker` queries `https://api.github.com/repos/Minato-chen/ChestDock/releases/latest` to check for new versions, and can be disabled in Settings.
+- **Optional Accessibility Permission**: Used solely to read the exact coordinates of ChestDock's Dock icon (`com.apple.dock`) so the popover tail aligns precisely. ChestDock works normally without granting Accessibility by falling back to cursor-position estimation.
+
+---
+
+## Build from Source
+
+<details>
+<summary>Requirements & Xcode build steps</summary>
+
+- macOS 14.0+ and Xcode 16.0+ (Swift 5.9)
+
 ```bash
 git clone https://github.com/Minato-chen/ChestDock.git
 cd ChestDock
-# 使用 Xcode 打开调试运行
 open ChestDock.xcodeproj
 ```
 
----
+> If you modify project structure via `project.yml`, regenerate the project with [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`xcodegen generate`).
 
-## 🛠️ 设置与自定义
-
-- 按 **`⌘,`** 或在 Dock / 菜单栏图标上右键选择 **「设置...」**。
-- **通用**：开启开机自动启动、自动检查更新、菜单栏图标开关。
-- **分类与应用**：自由增删分类、重命名、拖拽排序、批量添加应用。
-- **网格与外观**：滑动调整行数、列数、图标尺寸、Dock 缩略图模式。
-- **快捷键**：自定义钉住与折叠快捷键。
-- **扩展与权限**：可按需开启辅助功能精确定位，预留了常用文件夹/文件添加支持。
+</details>
 
 ---
 
-## 📄 开源许可
+## License
 
-本项目遵循 [MIT License](LICENSE) 开源协议。
+Released under the [MIT License](LICENSE).
